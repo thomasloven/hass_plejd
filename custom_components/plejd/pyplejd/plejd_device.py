@@ -111,13 +111,15 @@ class PlejdDevice:
 
 class PlejdScene:
 
-    def __init__(self, manager, index, title):
+    def __init__(self, manager, index, title, visible):
         self._manager = manager
         self._index = index
         self._title = title
+        self._visible = visible
+        self.updateCallback = None
 
     def __repr__(self):
-        return f"<PlejdScene(<manager>, {self._index}, '{self._title}'>"
+        return f"<PlejdScene(<manager>, {self._index}, '{self._title}', {self._visible}>"
 
     @property
     def name(self):
@@ -128,8 +130,21 @@ class PlejdScene:
         return self._index
 
     @property
+    def visible(self):
+        return self._visible
+
+    @property
     def available(self):
         return self._manager.connected
 
     async def activate(self):
         await self._manager.mesh.activate_scene(self._index)
+
+    def new_state(self, state):
+        if self.updateCallback:
+            data = {
+                "index": self.index,
+                "name": self.name,
+                "state": "on" if state else "off",
+            }
+            self.updateCallback(data)

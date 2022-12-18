@@ -97,7 +97,7 @@ class PlejdMesh():
             self.pollonWrite = False
             data = encrypt_decrypt(self.crypto_key, self.connected_node, lastdata)
             _LOGGER.debug("Received LastData %s", data.hex())
-            deviceState = decode_state(data)
+            deviceState = decode_message(data)
             _LOGGER.debug("Decoded LastData %s", deviceState)
             if deviceState is None:
                 return
@@ -201,7 +201,7 @@ class PlejdMesh():
         return False
 
 
-def decode_state(data):
+def decode_message(data):
     address = int(data[0])
     cmdtype = data[1:3]
     if not cmdtype == b"\x01\x10":
@@ -209,11 +209,20 @@ def decode_state(data):
         return None
     cmd = data[3:5]
 
-    # if address == 0:
-    #     # Broadcast
-    #     pass
+    if address == 0:
+        # Broadcast
+        if cmd == b"\x00\x21":
+            # Scene triggered
+            sceneIndex = data[5] % 128
+            state = data[5] < 128
+            _LOGGER.debug(f"id: {sceneIndex} state: {state}")
+            return {
+                "sceneIndex": sceneIndex,
+                "state": state,
+            }
+        return None
     if address == 1 and cmd == b"\x00\x1b":
-        _LOGGER.debug("Got time data?")
+        _LOGGER.debug("Got time data")
         ts = struct.unpack_from("<I", data, 5)[0]
         dt = datetime.fromtimestamp(ts)
         _LOGGER.debug("Timestamp: %s (%s)", ts, dt)

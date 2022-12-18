@@ -8,10 +8,12 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    scenes = hass.data[DOMAIN]["scenes"].get(config_entry.entry_id, [])
+    scenes = hass.data[DOMAIN]["scenes"].get(config_entry.entry_id, []).values()
 
     entities = []
     for s in scenes:
+        s.updateCallback = lambda d: hass.bus.fire("plejd_scene_event", d)
+        if not s.visible: continue
         button = PlejdSceneButton(s, config_entry.entry_id)
         entities.append(button)
     async_add_entities(entities, False)
